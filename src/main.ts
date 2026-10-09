@@ -69,18 +69,24 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
       errorView = document.createElement('div');
       errorView.className = 'error-view';
       container.querySelector('.quiz-card')!.appendChild(errorView);
+    } else {
+      errorView.replaceChildren();
     }
-    errorView.innerHTML = `
-      <p class="error-message">${message}</p>
-      <button class="retry-btn">Try again</button>
-    `;
 
-    const retryBtn = errorView.querySelector<HTMLButtonElement>('.retry-btn')!;
+    const p = document.createElement('p');
+    p.className = 'error-message';
+    p.textContent = message;
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'retry-btn';
+    retryBtn.textContent = 'Try again';
     retryBtn.addEventListener('click', () => {
       errorView?.remove();
       gameContentEl.style.display = '';
       loadRound();
     });
+
+    errorView.replaceChildren(p, retryBtn);
   }
 
   async function loadRound(): Promise<void> {
@@ -90,6 +96,7 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
     nextBtn.style.display = 'none';
     optionsGridEl.innerHTML = '';
     imgEl.classList.add('silhouette');
+    imgEl.alt = "Who's that Pokémon?";
     imgEl.removeAttribute('src');
 
     const round = pickRound(rng);
@@ -116,6 +123,7 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
           updateScoreDisplay();
 
           imgEl.classList.remove('silhouette');
+          imgEl.alt = formatName(answerPokemon.name);
 
           const allButtons = optionsGridEl.querySelectorAll<HTMLButtonElement>('.option-btn');
           allButtons.forEach((b) => {

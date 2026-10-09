@@ -176,4 +176,48 @@ describe('main quiz UI', () => {
     expect(img).not.toBeNull();
     expect(img?.classList.contains('silhouette')).toBe(true);
   });
+
+  it('13. error view does not use innerHTML with error message (prevents XSS)', async () => {
+    const maliciousPayload = '<img src=x onerror=alert(1)>';
+    const api = {
+      getPokemon: vi.fn(async () => {
+        throw new Error(maliciousPayload);
+      }),
+    };
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+
+    const errorEl = container.querySelector<HTMLElement>('.error-message');
+    expect(errorEl).not.toBeNull();
+    expect(errorEl?.textContent).toBe(maliciousPayload);
+
+    const errorView = container.querySelector<HTMLElement>('.error-view');
+    expect(errorView).not.toBeNull();
+    expect(errorView?.querySelectorAll('img')).toHaveLength(0);
+  });
+
+  it("14. after a reveal, image alt is formatted name; on a new round it goes back to \"Who's that Pokémon?\"", async () => {
+    const api = createMockApi();
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+
+    const img = container.querySelector<HTMLImageElement>('img')!;
+    expect(img.alt).toBe("Who's that Pokémon?");
+
+    const optionButtons = container.querySelectorAll<HTMLButtonElement>('.option-btn');
+    const pikachuBtn = Array.from(optionButtons).find((b) => b.textContent?.trim() === 'Pikachu')!;
+    pikachuBtn.click();
+
+    expect(img.alt).toBe('Pikachu');
+
+    const nextBtn = container.querySelector<HTMLButtonElement>('.next-btn')!;
+    nextBtn.click();
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(img.alt).toBe("Who's that Pokémon?");
+  });
 });
+
