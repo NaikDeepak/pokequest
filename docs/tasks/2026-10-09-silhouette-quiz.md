@@ -64,3 +64,13 @@ big image (240px), 2×2 option grid, score bar on top. Works on a phone width. K
 ## Don'ts
 - No new dependencies (node_modules is already installed; don't run npm install). No changes outside the file list.
 - No background commands, no dev server. One command per call. Never call the real API from tests.
+
+## Review round 1 (claude + codex)
+Played it in Chrome against the real API: both paths work. Three fixes, tests first:
+13. The error view must not use `innerHTML` with the error message (API/network text). Test: an api that rejects with
+    `new Error('<img src=x onerror=alert(1)>')` → `.error-message` textContent equals that string and the error view
+    contains no `<img>` element. Build the error view with `createElement` / `textContent`.
+14. After a reveal, the image's `alt` is the Pokémon's formatted name; on a new round it goes back to "Who's that Pokémon?".
+15. Layout: the card must not jump when the status line appears. Give `.status` a fixed `min-height` (one line) so the
+    grid doesn't move. (CSS only, no test.)
+All 12 existing tests must still pass; typecheck and build clean. Commit, then handoff + release.
