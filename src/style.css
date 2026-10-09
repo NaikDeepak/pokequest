@@ -24,8 +24,8 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 16px;
+  align-items: flex-start; /* top-anchored: showing "Next" grows the card downward instead of shifting it up */
+  padding: 48px 16px 16px;
 }
 
 #app {
