@@ -9,10 +9,19 @@ export type AppOptions = {
   storage?: Storage;
 };
 
+// Reading window.localStorage itself throws when the browser blocks storage (e.g. cookies disabled).
+function defaultStorage(): Storage | undefined {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function initApp(container: HTMLElement, options: AppOptions = {}): Promise<void> {
   const api = options.api ?? createPokeApi();
   const rng = options.rng ?? Math.random;
-  const storage = options.storage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
+  const storage = options.storage ?? defaultStorage();
 
   let caught = loadCaught(storage);
   let initialBest = 0;
