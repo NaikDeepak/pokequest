@@ -192,3 +192,184 @@ body {
 .retry-btn:hover {
   background-color: var(--primary-hover);
 }
+
+.dex-btn {
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dex-btn:hover {
+  background: #eff6ff;
+  border-color: var(--primary);
+}
+
+.pokedex-view {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dex-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dex-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.dex-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.dex-back {
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dex-back:hover {
+  background: #e2e8f0;
+}
+
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.dex-cell {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 118px;
+  box-sizing: border-box;
+  opacity: 0.45;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.dex-cell.caught {
+  opacity: 1;
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  justify-content: flex-start;
+}
+
+.dex-cell.error {
+  opacity: 0.8;
+  border-color: var(--error);
+  background: #fef2f2;
+  justify-content: center;
+}
+
+.dex-cell .dex-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.dex-cell.error .dex-num {
+  color: var(--error);
+}
+
+.dex-cell.caught .dex-num {
+  font-size: 0.6rem;
+  margin-bottom: 2px;
+  align-self: flex-start;
+  padding-left: 2px;
+  line-height: 1;
+}
+
+.dex-cell img.dex-art {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin-bottom: 2px;
+  user-select: none;
+}
+
+.dex-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.15;
+  margin-bottom: 3px;
+  word-break: break-word;
+}
+
+.dex-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+}
+
+.type-badge {
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #ffffff;
+  background-color: #64748b;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+/* Pokemon Gen-1 + Steel + Fairy type colors */
+.type-badge.type-normal { background-color: #9fa19f; }
+.type-badge.type-fire { background-color: #e62829; }
+.type-badge.type-water { background-color: #2980ef; }
+.type-badge.type-grass { background-color: #3fa129; }
+.type-badge.type-electric { background-color: #fac000; color: #1e293b; }
+.type-badge.type-ice { background-color: #3dcef3; color: #1e293b; }
+.type-badge.type-fighting { background-color: #ff8000; }
+.type-badge.type-poison { background-color: #9141cb; }
+.type-badge.type-ground { background-color: #915121; }
+.type-badge.type-flying { background-color: #81b9ef; color: #1e293b; }
+.type-badge.type-psychic { background-color: #ef4179; }
+.type-badge.type-bug { background-color: #91a119; }
+.type-badge.type-rock { background-color: #afa981; color: #1e293b; }
+.type-badge.type-ghost { background-color: #704170; }
+.type-badge.type-dragon { background-color: #5060e1; }
+.type-badge.type-steel { background-color: #60a1b8; }
+.type-badge.type-fairy { background-color: #ef70ef; }
+
