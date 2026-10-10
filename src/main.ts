@@ -1,6 +1,7 @@
 import './style.css';
 import { createPokeApi, type Pokemon } from './pokeapi.ts';
 import { applyAnswer, formatName, pickRound, type Score } from './quiz.ts';
+import { addCaught, DEX_SIZE, loadCaught, saveCaught } from './pokedex.ts';
 
 export type AppOptions = {
   api?: { getPokemon(id: number): Promise<Pokemon> };
@@ -13,6 +14,7 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
   const rng = options.rng ?? Math.random;
   const storage = options.storage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
 
+  let caught = loadCaught(storage);
   const initialBest = storage ? parseInt(storage.getItem('pokequest.best') || '0', 10) || 0 : 0;
   let scoreState: Score = { score: 0, streak: 0, best: initialBest };
   let isAnswered = false;
@@ -32,6 +34,7 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
           <span>Best</span>
           <span class="best-val">${scoreState.best}</span>
         </div>
+        <button class="dex-btn" type="button">Pokédex ${caught.length}/${DEX_SIZE}</button>
       </div>
       <div class="game-content">
         <div class="image-container">
@@ -47,11 +50,16 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
   const scoreValEl = container.querySelector<HTMLElement>('.score-val')!;
   const streakValEl = container.querySelector<HTMLElement>('.streak-val')!;
   const bestValEl = container.querySelector<HTMLElement>('.best-val')!;
+  const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
   const gameContentEl = container.querySelector<HTMLElement>('.game-content')!;
   const imgEl = container.querySelector<HTMLImageElement>('.pokemon-image')!;
   const statusEl = container.querySelector<HTMLElement>('.status')!;
   const optionsGridEl = container.querySelector<HTMLElement>('.options-grid')!;
   const nextBtn = container.querySelector<HTMLButtonElement>('.next-btn')!;
+
+  function updateDexBtn() {
+    dexBtn.textContent = `Pokédex ${caught.length}/${DEX_SIZE}`;
+  }
 
   function updateScoreDisplay() {
     scoreValEl.textContent = String(scoreState.score);
@@ -135,6 +143,9 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
 
           if (isCorrect) {
             statusEl.textContent = 'Correct!';
+            caught = addCaught(caught, answerPokemon.id);
+            saveCaught(storage, caught);
+            updateDexBtn();
           } else {
             btn.classList.add('wrong');
             statusEl.textContent = `It's ${formatName(answerPokemon.name)}!`;
@@ -151,6 +162,119 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
       showError(message);
     }
   }
+
+  async function openPokedex(): Promise<void> {
+    gameContentEl.style.display = 'none';
+    const errorView = container.querySelector<HTMLElement>('.error-view');
+    if (errorView) {
+      errorView.style.display = 'none';
+    }
+
+    let pokedexView = container.querySelector<HTMLElement>('.pokedex-view');
+    if (pokedexView) {
+      pokedexView.remove();
+    }
+
+    pokedexView = document.createElement('div');
+    pokedexView.className = 'pokedex-view';
+    container.querySelector('.quiz-card')!.appendChild(pokedexView);
+
+    const header = document.createElement('div');
+    header.className = 'dex-header';
+
+    const title = document.createElement('h2');
+    title.className = 'dex-title';
+    title.textContent = 'Pokédex';
+
+    const count = document.createElement('span');
+    count.className = 'dex-count';
+    count.textContent = `${caught.length} / ${DEX_SIZE} caught`;
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'dex-back';
+    backBtn.type = 'button';
+    backBtn.textContent = 'Back';
+    backBtn.addEventListener('click', closePokedex);
+
+    header.appendChild(title);
+    header.appendChild(count);
+    header.appendChild(backBtn);
+    pokedexView.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'dex-grid';
+    pokedexView.appendChild(grid);
+
+    const caughtSet = new Set(caught);
+    const fetchPromises: Promise<void>[] = [];
+
+    for (let id = 1; id <= DEX_SIZE; id++) {
+      const cell = document.createElement('div');
+      cell.className = 'dex-cell';
+
+      const numSpan = document.createElement('span');
+      numSpan.className = 'dex-num';
+      numSpan.textContent = `#${String(id).padStart(3, '0')}`;
+      cell.appendChild(numSpan);
+
+      grid.appendChild(cell);
+
+      if (caughtSet.has(id)) {
+        const p = (async () => {
+          try {
+            const pokemon = await api.getPokemon(id);
+            cell.classList.add('caught');
+
+            const img = document.createElement('img');
+            img.className = 'dex-art';
+            img.src = pokemon.sprite;
+            img.alt = formatName(pokemon.name);
+            cell.appendChild(img);
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'dex-name';
+            nameEl.textContent = formatName(pokemon.name);
+            cell.appendChild(nameEl);
+
+            if (pokemon.types && pokemon.types.length > 0) {
+              const typesEl = document.createElement('div');
+              typesEl.className = 'dex-types';
+              pokemon.types.forEach((type) => {
+                const badge = document.createElement('span');
+                badge.className = `type-badge type-${type.toLowerCase().replace(/[^a-z0-9_-]/g, '')}`;
+                badge.textContent = type;
+                typesEl.appendChild(badge);
+              });
+              cell.appendChild(typesEl);
+            }
+          } catch {
+            cell.classList.add('error');
+          }
+        })();
+        fetchPromises.push(p);
+      }
+    }
+
+    await Promise.all(fetchPromises);
+  }
+
+  function closePokedex(): void {
+    const pokedexView = container.querySelector<HTMLElement>('.pokedex-view');
+    if (pokedexView) {
+      pokedexView.remove();
+    }
+
+    const errorView = container.querySelector<HTMLElement>('.error-view');
+    if (errorView) {
+      errorView.style.display = '';
+    } else {
+      gameContentEl.style.display = '';
+    }
+  }
+
+  dexBtn.addEventListener('click', () => {
+    openPokedex();
+  });
 
   nextBtn.addEventListener('click', () => {
     loadRound();

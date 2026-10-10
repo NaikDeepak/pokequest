@@ -219,5 +219,223 @@ describe('main quiz UI', () => {
 
     expect(img.alt).toBe("Who's that Pokémon?");
   });
+
+  it('19. A .dex-btn button in the score bar reads Pokédex 0/151; with storage pre-seeded [1,4] it reads Pokédex 2/151', async () => {
+    const api = createMockApi();
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+    const dexBtn = container.querySelector<HTMLButtonElement>('.score-bar .dex-btn');
+    expect(dexBtn).not.toBeNull();
+    expect(dexBtn?.textContent?.trim()).toBe('Pokédex 0/151');
+
+    localStorage.setItem('pokequest.pokedex', JSON.stringify([1, 4]));
+    const container2 = document.createElement('div');
+    document.body.appendChild(container2);
+    await initApp(container2, { api, rng });
+    const dexBtn2 = container2.querySelector<HTMLButtonElement>('.score-bar .dex-btn');
+    expect(dexBtn2?.textContent?.trim()).toBe('Pokédex 2/151');
+  });
+
+  it('20. A correct answer saves the answer id to pokequest.pokedex and the button updates to Pokédex 1/151. A wrong answer saves nothing. Correctly naming an already-caught Pokémon doesn\'t count it twice.', async () => {
+    const api = createMockApi();
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+    const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
+    expect(dexBtn.textContent?.trim()).toBe('Pokédex 0/151');
+
+    // Wrong answer
+    const charmanderBtn = Array.from(container.querySelectorAll<HTMLButtonElement>('.option-btn')).find(
+      (b) => b.textContent?.trim() === 'Charmander'
+    )!;
+    charmanderBtn.click();
+    expect(localStorage.getItem('pokequest.pokedex')).toBeNull();
+    expect(dexBtn.textContent?.trim()).toBe('Pokédex 0/151');
+
+    // Fresh round: correct answer
+    const container2 = document.createElement('div');
+    document.body.appendChild(container2);
+    await initApp(container2, { api, rng });
+    const dexBtn2 = container2.querySelector<HTMLButtonElement>('.dex-btn')!;
+    const pikachuBtn = Array.from(container2.querySelectorAll<HTMLButtonElement>('.option-btn')).find(
+      (b) => b.textContent?.trim() === 'Pikachu'
+    )!;
+    pikachuBtn.click();
+
+    expect(JSON.parse(localStorage.getItem('pokequest.pokedex') || '[]')).toEqual([25]);
+    expect(dexBtn2.textContent?.trim()).toBe('Pokédex 1/151');
+
+    // Another round where answer is already caught: doesn't count it twice
+    const container3 = document.createElement('div');
+    document.body.appendChild(container3);
+    await initApp(container3, { api, rng });
+    const dexBtn3 = container3.querySelector<HTMLButtonElement>('.dex-btn')!;
+    expect(dexBtn3.textContent?.trim()).toBe('Pokédex 1/151');
+    const pikachuBtn3 = Array.from(container3.querySelectorAll<HTMLButtonElement>('.option-btn')).find(
+      (b) => b.textContent?.trim() === 'Pikachu'
+    )!;
+    pikachuBtn3.click();
+    expect(JSON.parse(localStorage.getItem('pokequest.pokedex') || '[]')).toEqual([25]);
+    expect(dexBtn3.textContent?.trim()).toBe('Pokédex 1/151');
+  });
+
+  it('21. Clicking .dex-btn shows .pokedex-view and hides .game-content. The view has a .dex-count (2 / 151 caught) and 151 .dex-cell elements in id order. Caught cells have class caught, an <img> whose src is the sprite and alt is the formatted name, a .dex-name with the formatted name, and one .type-badge per type (text = type name, class type-<name>). Uncaught cells have no <img> and show the padded number, e.g. #004.', async () => {
+    localStorage.setItem('pokequest.pokedex', JSON.stringify([1, 4]));
+    const api = createMockApi();
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+
+    const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
+    dexBtn.click();
+
+    // Allow any async fetches for pokedex
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const gameContent = container.querySelector<HTMLElement>('.game-content')!;
+    expect(gameContent.style.display === 'none' || gameContent.hidden).toBe(true);
+
+    const pokedexView = container.querySelector<HTMLElement>('.pokedex-view');
+    expect(pokedexView).not.toBeNull();
+    expect(pokedexView?.style.display).not.toBe('none');
+
+    const dexCount = pokedexView?.querySelector<HTMLElement>('.dex-count');
+    expect(dexCount?.textContent?.trim()).toBe('2 / 151 caught');
+
+    const cells = pokedexView?.querySelectorAll<HTMLElement>('.dex-cell')!;
+    expect(cells).toHaveLength(151);
+
+    // Cell 0 -> id 1 (Bulbasaur, caught)
+    const cell1 = cells[0];
+    expect(cell1.classList.contains('caught')).toBe(true);
+    const img1 = cell1.querySelector<HTMLImageElement>('img');
+    expect(img1).not.toBeNull();
+    expect(img1?.src).toBe('https://img.test/1.png');
+    expect(img1?.alt).toBe('Bulbasaur');
+    expect(cell1.querySelector<HTMLElement>('.dex-name')?.textContent?.trim()).toBe('Bulbasaur');
+    const badge1 = cell1.querySelector<HTMLElement>('.type-badge');
+    expect(badge1?.textContent?.trim()).toBe('grass');
+    expect(badge1?.classList.contains('type-grass')).toBe(true);
+
+    // Cell 1 -> id 2 (uncaught)
+    const cell2 = cells[1];
+    expect(cell2.classList.contains('caught')).toBe(false);
+    expect(cell2.querySelector('img')).toBeNull();
+    expect(cell2.textContent).toContain('#002');
+
+    // Cell 3 -> id 4 (Charmander, caught)
+    const cell4 = cells[3];
+    expect(cell4.classList.contains('caught')).toBe(true);
+    const img4 = cell4.querySelector<HTMLImageElement>('img');
+    expect(img4).not.toBeNull();
+    expect(img4?.src).toBe('https://img.test/4.png');
+    expect(img4?.alt).toBe('Charmander');
+    expect(cell4.querySelector<HTMLElement>('.dex-name')?.textContent?.trim()).toBe('Charmander');
+    const badge4 = cell4.querySelector<HTMLElement>('.type-badge');
+    expect(badge4?.textContent?.trim()).toBe('fire');
+    expect(badge4?.classList.contains('type-fire')).toBe(true);
+  });
+
+  it('22. A .dex-back button hides the Pokédex and shows the quiz again, unchanged: same image src, same status text, same disabled state of the option buttons, "Next" still visible if it was.', async () => {
+    const api = createMockApi();
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+
+    // Answer round
+    const pikachuBtn = Array.from(container.querySelectorAll<HTMLButtonElement>('.option-btn')).find(
+      (b) => b.textContent?.trim() === 'Pikachu'
+    )!;
+    pikachuBtn.click();
+
+    const img = container.querySelector<HTMLImageElement>('.pokemon-image')!;
+    const statusEl = container.querySelector<HTMLElement>('.status')!;
+    const nextBtn = container.querySelector<HTMLButtonElement>('.next-btn')!;
+
+    const savedImgSrc = img.src;
+    const savedStatus = statusEl.textContent;
+    const nextVisible = !nextBtn.hidden && getComputedStyle(nextBtn).display !== 'none';
+    expect(nextVisible).toBe(true);
+
+    // Click pokedex
+    const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
+    dexBtn.click();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Click back
+    const backBtn = container.querySelector<HTMLButtonElement>('.dex-back')!;
+    expect(backBtn).not.toBeNull();
+    backBtn.click();
+
+    const gameContent = container.querySelector<HTMLElement>('.game-content')!;
+    expect(gameContent.style.display).not.toBe('none');
+    expect(gameContent.hidden).toBe(false);
+
+    const pokedexView = container.querySelector<HTMLElement>('.pokedex-view');
+    expect(!pokedexView || pokedexView.style.display === 'none' || pokedexView.hidden).toBe(true);
+
+    expect(img.src).toBe(savedImgSrc);
+    expect(statusEl.textContent).toBe(savedStatus);
+    const buttons = container.querySelectorAll<HTMLButtonElement>('.option-btn');
+    for (const btn of buttons) {
+      expect(btn.disabled).toBe(true);
+    }
+    expect(!nextBtn.hidden && getComputedStyle(nextBtn).display !== 'none').toBe(true);
+  });
+
+  it('23. If getPokemon rejects for one caught id, that cell gets class error, still shows its number, and every other cell still renders.', async () => {
+    localStorage.setItem('pokequest.pokedex', JSON.stringify([1, 7]));
+    const api = {
+      getPokemon: vi.fn(async (id: number) => {
+        if (id === 7) {
+          throw new PokeApiError('Squirtle fetch error');
+        }
+        return mockPokemons[id] ?? { id, name: `pokemon-${id}`, sprite: `https://img.test/${id}.png`, types: ['normal'] };
+      }),
+    };
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+
+    const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
+    dexBtn.click();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const cells = container.querySelectorAll<HTMLElement>('.dex-cell');
+    expect(cells).toHaveLength(151);
+
+    const cell1 = cells[0]; // id 1
+    expect(cell1.classList.contains('caught')).toBe(true);
+    expect(cell1.classList.contains('error')).toBe(false);
+
+    const cell7 = cells[6]; // id 7
+    expect(cell7.classList.contains('error')).toBe(true);
+    expect(cell7.textContent).toContain('#007');
+
+    const cell2 = cells[1]; // id 2 uncaught
+    expect(cell2.textContent).toContain('#002');
+  });
+
+  it('24. Safety: a caught Pokémon whose type is <b>x</b> gives a badge with exactly that textContent and no <b> element anywhere in the Pokédex.', async () => {
+    localStorage.setItem('pokequest.pokedex', JSON.stringify([1]));
+    const api = createMockApi({
+      1: { id: 1, name: 'bulbasaur', sprite: 'https://img.test/1.png', types: ['<b>x</b>'] },
+    });
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+
+    const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
+    dexBtn.click();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const pokedexView = container.querySelector<HTMLElement>('.pokedex-view')!;
+    const badge = pokedexView.querySelector<HTMLElement>('.type-badge');
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe('<b>x</b>');
+    expect(pokedexView.querySelectorAll('b')).toHaveLength(0);
+  });
 });
+
 
