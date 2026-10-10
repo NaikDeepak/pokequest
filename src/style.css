@@ -278,9 +278,11 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 72px;
+  height: 138px;
+  box-sizing: border-box;
   opacity: 0.45;
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .dex-cell.caught {
@@ -288,16 +290,18 @@ body {
   background: #ffffff;
   border-color: #cbd5e1;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  justify-content: flex-start;
 }
 
 .dex-cell.error {
   opacity: 0.8;
   border-color: var(--error);
   background: #fef2f2;
+  justify-content: center;
 }
 
 .dex-cell .dex-num {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
 }
@@ -311,13 +315,14 @@ body {
   margin-bottom: 2px;
   align-self: flex-start;
   padding-left: 2px;
+  line-height: 1;
 }
 
 .dex-cell img.dex-art {
   width: 64px;
   height: 64px;
   object-fit: contain;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   user-select: none;
 }
 

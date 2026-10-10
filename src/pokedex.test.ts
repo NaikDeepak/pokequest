@@ -49,4 +49,20 @@ describe('pokedex', () => {
 
     expect(() => saveCaught(undefined, [1, 4, 25])).not.toThrow();
   });
+
+  it('loadCaught and saveCaught swallow exceptions when storage methods throw', () => {
+    const throwingStorage = {
+      getItem: vi.fn(() => {
+        throw new Error('SecurityError: The operation is insecure');
+      }),
+      setItem: vi.fn(() => {
+        throw new Error('QuotaExceededError');
+      }),
+    } as unknown as Storage;
+
+    expect(() => loadCaught(throwingStorage)).not.toThrow();
+    expect(loadCaught(throwingStorage)).toEqual([]);
+    expect(() => saveCaught(throwingStorage, [1, 4, 25])).not.toThrow();
+  });
 });
+

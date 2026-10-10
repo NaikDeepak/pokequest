@@ -436,6 +436,104 @@ describe('main quiz UI', () => {
     expect(badge?.textContent).toBe('<b>x</b>');
     expect(pokedexView.querySelectorAll('b')).toHaveLength(0);
   });
+
+  it('25. A round that fails while the Pokédex is open must not show its error over the Pokédex. After .dex-back, the error view and its "Try again" button are visible.', async () => {
+    let rejectRound: ((err: Error) => void) | null = null;
+    let failNextRound = false;
+
+    const api = {
+      getPokemon: vi.fn(async (id: number) => {
+        if (id === 25) {
+          return mockPokemons[25];
+        }
+        if (failNextRound) {
+          return new Promise<Pokemon>((_, reject) => {
+            rejectRound = reject;
+          });
+        }
+        return mockPokemons[id] ?? { id, name: `pokemon-${id}`, sprite: `https://img.test/${id}.png`, types: ['normal'] };
+      }),
+    };
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng });
+
+    // Answer round 1
+    const pikachuBtn = Array.from(container.querySelectorAll<HTMLButtonElement>('.option-btn')).find(
+      (b) => b.textContent?.trim() === 'Pikachu'
+    )!;
+    pikachuBtn.click();
+
+    // Next round will fail
+    failNextRound = true;
+    const nextBtn = container.querySelector<HTMLButtonElement>('.next-btn')!;
+    nextBtn.click();
+
+    // Open Pokédex while next round is loading
+    const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
+    dexBtn.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // Next round rejects
+    expect(rejectRound).not.toBeNull();
+    rejectRound!(new PokeApiError('Fetch error while dex open'));
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // .pokedex-view is still the only visible view (no visible .error-view)
+    const pokedexView = container.querySelector<HTMLElement>('.pokedex-view');
+    expect(pokedexView).not.toBeNull();
+    expect(pokedexView?.style.display).not.toBe('none');
+
+    const errorView = container.querySelector<HTMLElement>('.error-view');
+    if (errorView) {
+      expect(errorView.style.display).toBe('none');
+    }
+
+    // Click back
+    const backBtn = container.querySelector<HTMLButtonElement>('.dex-back')!;
+    backBtn.click();
+
+    // After .dex-back, error view and retry button are visible
+    const visibleErrorView = container.querySelector<HTMLElement>('.error-view')!;
+    expect(visibleErrorView).not.toBeNull();
+    expect(visibleErrorView.style.display).not.toBe('none');
+    const retryBtn = visibleErrorView.querySelector<HTMLButtonElement>('.retry-btn');
+    expect(retryBtn).not.toBeNull();
+  });
+
+  it('26. Storage that throws must not break the game: app loads, correct answer updates score and button to Pokédex 1/151', async () => {
+    const throwingStorage = {
+      getItem: vi.fn(() => {
+        throw new Error('QuotaExceeded or SecurityError: Access denied');
+      }),
+      setItem: vi.fn(() => {
+        throw new Error('QuotaExceeded or SecurityError: Access denied');
+      }),
+    } as unknown as Storage;
+
+    const api = createMockApi();
+    const rng = createFixedRng();
+
+    await initApp(container, { api, rng, storage: throwingStorage });
+
+    const dexBtn = container.querySelector<HTMLButtonElement>('.dex-btn')!;
+    expect(dexBtn).not.toBeNull();
+    expect(dexBtn.textContent?.trim()).toBe('Pokédex 0/151');
+
+    const scoreEl = container.querySelector<HTMLElement>('.score-val')!;
+    expect(scoreEl.textContent).toBe('0');
+
+    // Click correct answer (Pikachu)
+    const pikachuBtn = Array.from(container.querySelectorAll<HTMLButtonElement>('.option-btn')).find(
+      (b) => b.textContent?.trim() === 'Pikachu'
+    )!;
+    pikachuBtn.click();
+
+    expect(scoreEl.textContent).toBe('1');
+    expect(dexBtn.textContent?.trim()).toBe('Pokédex 1/151');
+  });
 });
+
 
 

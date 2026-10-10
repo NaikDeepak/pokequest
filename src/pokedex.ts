@@ -6,7 +6,13 @@ export function loadCaught(storage?: Storage): number[] {
     return [];
   }
 
-  const raw = storage.getItem(POKEDEX_KEY);
+  let raw: string | null = null;
+  try {
+    raw = storage.getItem(POKEDEX_KEY);
+  } catch {
+    return [];
+  }
+
   if (!raw) {
     return [];
   }
@@ -42,5 +48,10 @@ export function saveCaught(storage: Storage | undefined, caught: number[]): void
     return;
   }
 
-  storage.setItem(POKEDEX_KEY, JSON.stringify(caught));
+  try {
+    storage.setItem(POKEDEX_KEY, JSON.stringify(caught));
+  } catch {
+    // Swallow exceptions (blocked or full storage)
+  }
 }
+

@@ -15,9 +15,17 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
   const storage = options.storage ?? (typeof window !== 'undefined' ? window.localStorage : undefined);
 
   let caught = loadCaught(storage);
-  const initialBest = storage ? parseInt(storage.getItem('pokequest.best') || '0', 10) || 0 : 0;
+  let initialBest = 0;
+  if (storage) {
+    try {
+      initialBest = parseInt(storage.getItem('pokequest.best') || '0', 10) || 0;
+    } catch {
+      initialBest = 0;
+    }
+  }
   let scoreState: Score = { score: 0, streak: 0, best: initialBest };
   let isAnswered = false;
+  let isDexOpen = false;
 
   container.innerHTML = `
     <div class="quiz-card">
@@ -66,7 +74,11 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
     streakValEl.textContent = String(scoreState.streak);
     bestValEl.textContent = String(scoreState.best);
     if (storage) {
-      storage.setItem('pokequest.best', String(scoreState.best));
+      try {
+        storage.setItem('pokequest.best', String(scoreState.best));
+      } catch {
+        // Swallow storage exceptions (e.g. quota exceeded or private mode)
+      }
     }
   }
 
@@ -95,6 +107,12 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
     });
 
     errorView.replaceChildren(p, retryBtn);
+
+    if (isDexOpen) {
+      errorView.style.display = 'none';
+    } else {
+      errorView.style.display = '';
+    }
   }
 
   async function loadRound(): Promise<void> {
@@ -164,6 +182,7 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
   }
 
   async function openPokedex(): Promise<void> {
+    isDexOpen = true;
     gameContentEl.style.display = 'none';
     const errorView = container.querySelector<HTMLElement>('.error-view');
     if (errorView) {
@@ -259,6 +278,7 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
   }
 
   function closePokedex(): void {
+    isDexOpen = false;
     const pokedexView = container.querySelector<HTMLElement>('.pokedex-view');
     if (pokedexView) {
       pokedexView.remove();
@@ -267,6 +287,7 @@ export async function initApp(container: HTMLElement, options: AppOptions = {}):
     const errorView = container.querySelector<HTMLElement>('.error-view');
     if (errorView) {
       errorView.style.display = '';
+      gameContentEl.style.display = 'none';
     } else {
       gameContentEl.style.display = '';
     }
